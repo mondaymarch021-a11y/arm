@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบหยิบและแพ็คสินค้า</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; border: 2px solid #000; padding: 20px; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100">
+  <nav class="bg-slate-800 text-white p-4 flex justify-between">
+    <h1 class="font-bold">📦 ระบบหยิบสินค้า & พิมพ์ใบปะหน้า</h1>
+    <a href="index.html" class="bg-slate-700 px-3 py-1 rounded text-sm">← กลับหน้าร้าน</a>
+  </nav>
+  <main class="max-w-5xl mx-auto py-8 px-4">
+    <button onclick="loadOrders()" class="bg-teal-600 text-white px-4 py-2 rounded mb-4 text-sm">🔄 โหลดออเดอร์ล่าสุด</button>
+    <div class="bg-white rounded shadow overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-slate-200">
+            <th class="p-3 border">รหัสออเดอร์</th>
+            <th class="p-3 border">ลูกค้า & ที่อยู่</th>
+            <th class="p-3 border">รายการที่ต้องหยิบ</th>
+            <th class="p-3 border">สถานะ</th>
+            <th class="p-3 border">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="orderTableBody"></tbody>
+      </table>
+    </div>
+  </main>
+  <div id="packModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6">
+      <h3 class="font-bold border-b pb-2 mb-3">ใบหยิบสินค้า & ใบจ่าหน้าพัสดุ</h3>
+      <div id="pickingChecklist" class="bg-amber-50 p-3 rounded mb-4 text-sm"></div>
+      <div id="printArea" class="border-2 border-dashed border-black p-4 mb-4">
+        <p class="text-xs">ผู้ส่ง: ร้าน PureSmile Official (โทร 02-999-9999)</p>
+        <hr class="my-2">
+        <p class="text-xs text-slate-500">ผู้รับ:</p>
+        <p id="lblName" class="font-bold text-lg"></p>
+        <p id="lblPhone" class="font-bold text-sm"></p>
+        <p id="lblAddress" class="text-sm mt-1"></p>
+        <p id="lblOrderId" class="text-xs mt-3 font-mono"></p>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button onclick="document.getElementById('packModal').classList.add('hidden')" class="px-3 py-2 bg-slate-200 rounded text-sm">ปิด</button>
+        <button onclick="window.print()" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">🖨️ พิมพ์ใบปะหน้า</button>
+        <button onclick="markAsPacked()" class="px-3 py-2 bg-green-600 text-white rounded text-sm">✅ ยืนยันแพ็คแล้ว</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const SCRIPT_URL = "วาง_ลิงก์_จากขั้นตอนที่1_ตรงนี้";
+    let ordersData = [], currentOrder = null;
+    async function loadOrders() {
+      const res = await fetch(SCRIPT_URL);
+      ordersData = await res.json();
+      const tbody = document.getElementById("orderTableBody");
+      tbody.innerHTML = "";
+      ordersData.reverse().forEach((o, i) => {
+        tbody.innerHTML += `<tr>
+          <td class="p-3 border font-bold">${o.Order_ID}</td>
+          <td class="p-3 border"><b>${o.Customer_Name}</b> (${o.Phone})<br>${o.Address}</td>
+          <td class="p-3 border">SKU-01: ${o.SKU_1_Qty} ด้าม<br>SKU-02: ${o.SKU_2_Qty} ด้าม</td>
+          <td class="p-3 border">${o.Status}</td>
+          <td class="p-3 border"><button onclick="openModal(${i})" class="bg-indigo-600 text-white px-3 py-1 rounded">หยิบ & จ่าหน้า</button></td>
+        </tr>`;
+      });
+    }
+    function openModal(i) {
+      currentOrder = ordersData[i];
+      document.getElementById("lblName").innerText = currentOrder.Customer_Name;
+      document.getElementById("lblPhone").innerText = "โทร: " + currentOrder.Phone;
+      document.getElementById("lblAddress").innerText = currentOrder.Address;
+      document.getElementById("lblOrderId").innerText = "Order: " + currentOrder.Order_ID;
+      document.getElementById("pickingChecklist").innerHTML = `<b>เช็กลิสต์หยิบของลงกล่อง:</b><br>• SKU-01: ${currentOrder.SKU_1_Qty} ด้าม<br>• SKU-02: ${currentOrder.SKU_2_Qty} ด้าม`;
+      document.getElementById("packModal").classList.remove("hidden");
+    }
+    async function markAsPacked() {
+      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "pack", orderId: currentOrder.Order_ID }) });
+      alert("บันทึกสถานะแพ็คเรียบร้อย!");
+      document.getElementById("packModal").classList.add("hidden");
+      loadOrders();
+    }
+    loadOrders();
+  </script>
+</body>
+</html>
